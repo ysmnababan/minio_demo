@@ -8,8 +8,10 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -134,16 +136,28 @@ func (s *Storage) GetPresignedUrl(ctx context.Context, bucket, object string) (s
 }
 
 func main() {
-	endpoint := "localhost:9000"
-	accessKeyID := "minioadmin"
-	secretAccessKey := "minioadmin"
-	useSSL := false
+	var err error
+
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	}
+
+	// Read values
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	accessKeyID := os.Getenv("MINIO_ACCESS_KEY")
+	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
+
+	// Parse boolean from string
+	useSSL, err := strconv.ParseBool(os.Getenv("MINIO_USE_SSL"))
+	if err != nil {
+		useSSL = false // default fallback
+	}
 	ctx := context.Background()
 
 	// Initialize minio client object.
 	bucketName := "palm-attendance"
 	storage := NewStorage(endpoint, accessKeyID, secretAccessKey, useSSL)
-	var err error
 	// CREATE BUCKET
 	// err := storage.CreateBucketWithCheck(ctx, "firstbucket")
 
