@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -93,9 +92,12 @@ func (s *Storage) GetObject(ctx context.Context, bucketName, objectName string) 
 	return nil
 }
 
-func (s *Storage) ListObjects(ctx context.Context, bucketName string) error {
+// ListObjects
+//
+// Prefix can be filepath or filename
+func (s *Storage) ListObjects(ctx context.Context, bucketName string, prefix string) error {
 	objectCh := s.client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
-		// Prefix:    "myprefix",
+		Prefix:    prefix,
 		Recursive: true,
 	})
 	for object := range objectCh {
@@ -106,6 +108,20 @@ func (s *Storage) ListObjects(ctx context.Context, bucketName string) error {
 		fmt.Println(object)
 	}
 	return nil
+}
+
+// FileExists
+//
+// ObjectName must be exact path and filename
+func (s *Storage) FileExists(ctx context.Context, bucketName, objectName string) (bool, error) {
+	_, err := s.client.StatObject(ctx, bucketName, objectName, minio.StatObjectOptions{})
+	if err != nil {
+		if minio.ToErrorResponse(err).Code == "NoSuchKey" {
+			return false, nil // File not found
+		}
+		return false, err // Other error
+	}
+	return true, nil
 }
 
 func (s *Storage) GetPresignedUrl(ctx context.Context, bucket, object string) (string, error) {
@@ -125,35 +141,43 @@ func main() {
 	ctx := context.Background()
 
 	// Initialize minio client object.
-	bucketName := "firstbucket"
+	bucketName := "palm-attendance"
 	storage := NewStorage(endpoint, accessKeyID, secretAccessKey, useSSL)
-
+	var err error
 	// CREATE BUCKET
 	// err := storage.CreateBucketWithCheck(ctx, "firstbucket")
 
 	// UPLOAD OBJECT
-	dir, _ := os.Getwd()
-	fp := filepath.Join(dir, "template_berkas_organisasi.xlsx")
-	err := storage.PutObject(ctx, fp, bucketName, "newfile", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// dir, _ := os.Getwd()
+	// fp := filepath.Join(dir, "template_berkas_organisasi.xlsx")
+	// err := storage.PutObject(ctx, fp, bucketName, "newfile", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	// if err != nil {
+	// log.Fatal(err)
+	// }
 
 	// LIST OBJECT
-	err = storage.ListObjects(ctx, bucketName)
+	err = storage.ListObjects(ctx, bucketName, "public/excel_template/template_berkas_organisasi")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = storage.GetObject(ctx, bucketName, "newfile")
+	// GET/DOWNLOAD OBJECT
+	// err = storage.GetObject(ctx, bucketName, "newfile")
+	// if err != nil {
+	// log.Fatal(err)
+	// }
+
+	// CHECK FILE EXIST OR NOT
+	ok, err := storage.FileExists(ctx, bucketName, "public/excel_template/template_berkas_organisasi.xlsx")
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("is exist? :", ok)
 
-	url, err := storage.GetPresignedUrl(ctx, bucketName, "newfile")
+	// GET URL FOR DOWNLOAD
+	url, err := storage.GetPresignedUrl(ctx, bucketName, "public/excel_template/template_berkas_organisasi.xlsx")
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	fmt.Println("URL: ", url)
 }
