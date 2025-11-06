@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -69,6 +72,27 @@ func (s *Storage) PutObject(ctx context.Context, filepath, bucketname, objectNam
 	return nil
 }
 
+func (s *Storage) GetObject(ctx context.Context, bucketName, objectName string) error {
+	obj, err := s.client.GetObject(ctx, bucketName, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return err
+	}
+
+	defer obj.Close()
+
+	localFile, err := os.Create("/tmp/download.xlsx")
+	if err != nil {
+		return err
+	}
+	defer localFile.Close()
+
+	if _, err := io.Copy(localFile, obj); err != nil {
+		return err
+	}
+	fmt.Println("download success")
+	return nil
+}
+
 func (s *Storage) ListObjects(ctx context.Context, bucketName string) error {
 	objectCh := s.client.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
 		// Prefix:    "myprefix",
@@ -82,6 +106,15 @@ func (s *Storage) ListObjects(ctx context.Context, bucketName string) error {
 		fmt.Println(object)
 	}
 	return nil
+}
+
+func (s *Storage) GetPresignedUrl(ctx context.Context, bucket, object string) (string, error) {
+	reqParams := make(url.Values)
+	u, err := s.client.PresignedGetObject(ctx, bucket, object, 3*time.Minute, reqParams)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
 }
 
 func main() {
@@ -111,4 +144,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = storage.GetObject(ctx, bucketName, "newfile")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	url, err := storage.GetPresignedUrl(ctx, bucketName, "newfile")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("URL: ", url)
 }
