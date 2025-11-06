@@ -52,6 +52,9 @@ func (s *Storage) CreateBucketWithCheck(ctx context.Context, bucketName string) 
 	return nil
 }
 
+// PutObject
+//
+// ObjectName can contains path too: i.e. /path1/path2/readme.txt
 func (s *Storage) PutObject(ctx context.Context, filepath, bucketname, objectName, contentType string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -159,12 +162,12 @@ func main() {
 	bucketName := "palm-attendance"
 	storage := NewStorage(endpoint, accessKeyID, secretAccessKey, useSSL)
 	// CREATE BUCKET
-	// err := storage.CreateBucketWithCheck(ctx, "firstbucket")
+	// err = storage.CreateBucketWithCheck(ctx, bucketName)
 
 	// UPLOAD OBJECT
 	// dir, _ := os.Getwd()
 	// fp := filepath.Join(dir, "template_berkas_organisasi.xlsx")
-	// err := storage.PutObject(ctx, fp, bucketName, "newfile", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	// err = storage.PutObject(ctx, fp, bucketName, "temp/template_berkas_organisasi.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	// if err != nil {
 	// log.Fatal(err)
 	// }
