@@ -8,12 +8,14 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/xuri/excelize/v2"
 )
 
 // https://medium.com/@sharmavivek1709/building-a-scalable-object-storage-solution-with-golang-and-minio-b0080c4e41db
@@ -136,6 +138,36 @@ func (s *Storage) GetPresignedUrl(ctx context.Context, bucket, object string) (s
 		return "", err
 	}
 	return u.String(), nil
+}
+
+func readExcel() {
+	// os.Open()
+	filename, _ := os.Getwd()
+	filename = filepath.Join(filename, "template_berkas_organisasi.xlsx")
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	f, err := excelize.OpenFile(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(f.GetSheetName(0))
+	if err != nil {
+		log.Fatal(err)
+	}
+	// fmt.Println(rows, len(rows))
+	for i, cols := range rows {
+		fmt.Print(len(cols), " => ", i)
+		for _, val := range cols {
+			fmt.Print(val, ",")
+		}
+		fmt.Println()
+	}
 }
 
 func main() {
